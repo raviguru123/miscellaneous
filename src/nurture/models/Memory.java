@@ -18,6 +18,7 @@ public class Memory {
         }
         this.iMemorySegmentStrategy = iMemorySegmentStrategy;
         this.blockList = this.iMemorySegmentStrategy.divideMemoryIntoBlocks(memorySize, blockSize);
+
     }
 
     public void showMemoryStats() {

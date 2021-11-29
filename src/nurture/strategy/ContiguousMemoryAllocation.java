@@ -1,10 +1,12 @@
 package nurture.strategy;
 
 import lombok.NonNull;
+import lombok.Synchronized;
 import nurture.exception.MemoryNotAvailableException;
 import nurture.models.Block;
 import nurture.models.File;
 import nurture.models.Inode;
+import nurture.models.Memory;
 import nurture.utils.FileAllocationUtils;
 
 import java.util.Date;
@@ -13,7 +15,8 @@ import java.util.List;
 public class ContiguousMemoryAllocation implements IMemoryAllocationStrategy {
 
     @Override
-    public boolean isMemoryBlocksAvailable(@NonNull final String Content, @NonNull List<Block> blockList) {
+    public boolean isMemoryBlocksAvailable(@NonNull final String Content, @NonNull Memory memory) {
+        List<Block> blockList = memory.getBlockList();
         int start = this.getAvailableBlocks(Content.length(), blockList);
         if (start > -1) {
             return true;
@@ -21,7 +24,8 @@ public class ContiguousMemoryAllocation implements IMemoryAllocationStrategy {
         return false;
     }
 
-    public synchronized boolean allocateBlocks(@NonNull File file, @NonNull final String content, @NonNull List<Block> blockList) {
+    public synchronized boolean allocateBlocks(@NonNull File file, @NonNull final String content, @NonNull final String slot, @NonNull Memory memory) {
+        List<Block> blockList = memory.getBlockList();
         int start = this.getAvailableBlocks(content.length(), blockList);
         if (start > -1) {
             List<String> splitContentList = FileAllocationUtils.splitContents(content, blockList.get(start).getSize());
@@ -35,8 +39,9 @@ public class ContiguousMemoryAllocation implements IMemoryAllocationStrategy {
             inode.setUpdatedAt(new Date());
             inode.setStart(start);
             inode.setSize(splitContentList.size());
+            inode.setSlot(slot);
         } else {
-            throw new MemoryNotAvailableException();
+            return false;
         }
         return true;
     }
@@ -95,7 +100,8 @@ public class ContiguousMemoryAllocation implements IMemoryAllocationStrategy {
     }
 
     @Override
-    public boolean updateFileContent(@NonNull File file, @NonNull final String fileContent, @NonNull List<Block> blockList) {
+    public synchronized boolean updateFileContent(@NonNull File file, @NonNull final String fileContent, @NonNull Memory memory) {
+        List<Block> blockList = memory.getBlockList();
         List<String> splitContentList = FileAllocationUtils.splitContents(fileContent, blockList.get(0).getSize());
         if (isFileSizeIncrease(file, fileContent, blockList)) { // if updated content is larger than existing content
             if (checkAdjacentMemoryBlocksAvailable(file, fileContent, blockList)) { // check if extra blocks needed is available adjacent to existing file content
@@ -104,12 +110,9 @@ public class ContiguousMemoryAllocation implements IMemoryAllocationStrategy {
                     blockList.get(start).setContent(content);
                     start += 1;
                 }
-            } else {
-                int prevPos = file.getInode().getStart();
-                int size = file.getInode().getSize();
-                allocateBlocks(file, fileContent, blockList); // write all file content to new memory allocation.
-                markBlockFree(prevPos, prevPos + size, blockList); // mark the previous occupied block is free.
+                return true;
             }
+            return false;
         } else { // if file content is less than previous content update existing block and mark residual block free.
             int start = file.getInode().getStart();
             int end = file.getInode().getStart() + file.getFileSize();

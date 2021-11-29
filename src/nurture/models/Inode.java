@@ -18,11 +18,14 @@ public class Inode {
     private Integer start;
     @Setter
     private Integer size;
+    @Setter
+    private String slot;
 
     public Inode() {
         this.createdAt = new Date();
         this.updatedAt = null;
         this.size = 0;
         this.start = -1;
+        this.slot = null;
     }
 }

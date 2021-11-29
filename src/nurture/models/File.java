@@ -8,7 +8,7 @@ import java.util.Date;
 
 @Getter
 @ToString
-public class File {
+public class File implements Cloneable {
     private final String name;
     private Inode inode;
 
@@ -19,5 +19,9 @@ public class File {
 
     public int getFileSize() {
         return this.inode.getSize();
+    }
+
+    public Object clone() throws CloneNotSupportedException {
+        return super.clone();
     }
 }
