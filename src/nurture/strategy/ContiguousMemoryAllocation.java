@@ -73,6 +73,7 @@ public class ContiguousMemoryAllocation implements IMemoryAllocationStrategy {
         return splitFileContent.toString();
     }
 
+
     private int getAvailableBlocks(@NonNull final int size, List<Block> blockList) {
         if (blockList.size() > 0) {
             int requireBlocks = FileAllocationUtils.getRequireBlocks(size, blockList.get(0));
